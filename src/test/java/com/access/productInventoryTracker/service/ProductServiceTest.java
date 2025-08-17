@@ -144,6 +144,13 @@ public class ProductServiceTest {
                 Optional.empty(), Optional.of(new BigDecimal(700)), Optional.of(new BigDecimal(750)),  Optional.empty(), ProductService.Sort.productNameDESC);
         Assertions.assertTrue(products.isEmpty());
 
+        //test exact price match
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.of(new BigDecimal(120)), Optional.of(new BigDecimal(120)),  Optional.empty(), ProductService.Sort.productNameDESC);
+        Assertions.assertEquals(1, products.size());
+        Assertions.assertEquals(new BigDecimal("120.00"), products.get(0).getPrice());
+        Assertions.assertEquals("Wall Art", products.get(0).getName());
+
     }
 
     @Test
