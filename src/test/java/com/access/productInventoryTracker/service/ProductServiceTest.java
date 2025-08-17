@@ -4,21 +4,15 @@ import com.access.productInventoryTracker.dto.ProductDTO;
 import com.access.productInventoryTracker.model.Product;
 import com.access.productInventoryTracker.repository.ProductRepository;
 
-import static org.mockito.Mockito.when;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -64,75 +58,235 @@ public class ProductServiceTest {
 
     }
 
+
     @Test
-    public void testGetActiveProductsByFiltersProductName() {
-        List<ProductDTO> products = productService.getActiveProductsByFilters(Optional.of("Off"),
-                Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.categoryASC);
+    public void testGetProductsByFiltersAvailable(){
+        //available product under $200
+        List<ProductDTO> products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.of(new BigDecimal(200)), Optional.of(Boolean.TRUE), ProductService.Sort.priceASC);
+        Assertions.assertEquals(9, products.size());
+        for(ProductDTO prod: products){
+            Assertions.assertTrue(prod.isAvailable());
+        }
+
+        //non-available product under $200
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.of(new BigDecimal(200)), Optional.of(Boolean.FALSE), ProductService.Sort.priceASC);
+        Assertions.assertEquals(3, products.size());
+        for(ProductDTO prod: products){
+            Assertions.assertFalse(prod.isAvailable());
+        }
+
+        //all non available product
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Boolean.FALSE), ProductService.Sort.priceASC);
+        Assertions.assertEquals(6, products.size());
+        for(ProductDTO prod: products){
+            Assertions.assertFalse(prod.isAvailable());
+        }
+
+        //all avaialbe product
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Boolean.TRUE), ProductService.Sort.priceASC);
+        Assertions.assertEquals(15, products.size());
+        for(ProductDTO prod: products){
+            Assertions.assertTrue(prod.isAvailable());
+        }
+
+        //test no filter are given
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.priceASC);
+        Assertions.assertTrue(products.isEmpty());
+    }
+
+    @Test
+    public void testGetProductsByFiltersPriceRange(){
+        //price range sort by available asc
+        List<ProductDTO> products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.of(new BigDecimal(800)), Optional.of(new BigDecimal(2000)), Optional.empty(), ProductService.Sort.availableACS);
+        Assertions.assertEquals(2, products.size());
+        Assertions.assertEquals(new BigDecimal("800.00"), products.get(0).getPrice());
+        Assertions.assertEquals(Boolean.FALSE, products.get(0).isAvailable());
+        Assertions.assertEquals(new BigDecimal("1500.00"), products.get(1).getPrice());
+        Assertions.assertEquals(Boolean.TRUE, products.get(1).isAvailable());
+
+        //price starting sort by available desc
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.of(new BigDecimal(800)), Optional.empty(), Optional.empty(), ProductService.Sort.availableDESC);
+        Assertions.assertEquals(2, products.size());
+        Assertions.assertEquals(new BigDecimal("800.00"), products.get(1).getPrice());
+        Assertions.assertEquals(Boolean.FALSE, products.get(1).isAvailable());
+        Assertions.assertEquals(new BigDecimal("1500.00"), products.get(0).getPrice());
+        Assertions.assertEquals(Boolean.TRUE, products.get(0).isAvailable());
+
+        //price no higher than $50 sort by product name desc
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(),  Optional.of(new BigDecimal(50)),Optional.empty(), ProductService.Sort.productNameDESC);
+        Assertions.assertEquals(3, products.size());
+        Assertions.assertEquals("T-Shirt", products.get(0).getName());
+        Assertions.assertTrue(50 >= products.get(0).getPrice().doubleValue());
+        Assertions.assertEquals("Pen Set", products.get(1).getName());
+        Assertions.assertTrue(50 >= products.get(1).getPrice().doubleValue());
+        Assertions.assertEquals("Jeans", products.get(2).getName());
+        Assertions.assertTrue(50 >= products.get(2).getPrice().doubleValue());
+
+        //price no higher than $1 with no product matching
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.empty(),  Optional.of(new BigDecimal(1)),Optional.empty(), ProductService.Sort.productNameDESC);
+        Assertions.assertTrue(products.isEmpty());
+
+        //price greater than $10000 with no product matching
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.of(new BigDecimal(10000)), Optional.empty(), Optional.empty(), ProductService.Sort.productNameDESC);
+        Assertions.assertTrue(products.isEmpty());
+
+        //price range 700 - 750 with no product matching
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.empty(), Optional.of(new BigDecimal(700)), Optional.of(new BigDecimal(750)),  Optional.empty(), ProductService.Sort.productNameDESC);
+        Assertions.assertTrue(products.isEmpty());
+
+    }
+
+    @Test
+    public void testGetProductsByFiltersProductName() {
+        List<ProductDTO> products = productService.getProductsByFilters(Optional.of("Off"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.categoryASC);
         Assertions.assertEquals(3, products.size());
         Assertions.assertEquals("Home Appliances", products.get(0).getCategory());
         Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
         Assertions.assertEquals("Office Supplies", products.get(2).getCategory());
+        for(ProductDTO prod: products){
+            Assertions.assertTrue(prod.getName().toLowerCase().contains("off"));
+        }
 
-        products = productService.getActiveProductsByFilters(Optional.of("off"),
-                Optional.of("of"), Optional.empty(), Optional.empty(), ProductService.Sort.categoryDESC);
+        products = productService.getProductsByFilters(Optional.of("off"),
+                Optional.of("of"), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.categoryDESC);
         Assertions.assertEquals(3, products.size());
         Assertions.assertEquals("Home Appliances", products.get(2).getCategory());
         Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
         Assertions.assertEquals("Office Supplies", products.get(0).getCategory());
+        for(ProductDTO prod: products){
+            Assertions.assertTrue(prod.getName().toLowerCase().contains("off"));
+        }
 
-        products = productService.getActiveProductsByFilters(Optional.of("ofF"),
-                Optional.empty(), Optional.empty(), Optional.of(new BigDecimal(220)), ProductService.Sort.priceDESC);
+
+        products = productService.getProductsByFilters(Optional.of("ofF"),
+                Optional.empty(), Optional.empty(), Optional.of(new BigDecimal(220)), Optional.empty(), ProductService.Sort.priceDESC);
         Assertions.assertEquals(2, products.size());
         Assertions.assertTrue(220 >= products.get(0).getPrice().doubleValue());
         Assertions.assertTrue(220 >= products.get(1).getPrice().doubleValue());
+        for(ProductDTO prod: products){
+            Assertions.assertTrue(prod.getName().toLowerCase().contains("off"));
+        }
 
-        products = productService.getActiveProductsByFilters(Optional.of("off"),
-                Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.productNameASC);
+
+        products = productService.getProductsByFilters(Optional.of("off"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.productNameASC);
         System.out.println(products);
         Assertions.assertEquals(3, products.size());
         Assertions.assertEquals("Coffee Maker", products.get(0).getName());
         Assertions.assertEquals("Office Chair", products.get(1).getName());
         Assertions.assertEquals("Office Table", products.get(2).getName());
 
-        products = productService.getActiveProductsByFilters(Optional.of("off"),
-                Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.productNameDESC);
-        System.out.println(products);
+        products = productService.getProductsByFilters(Optional.of("off"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.productNameDESC);
         Assertions.assertEquals(3, products.size());
         Assertions.assertEquals("Coffee Maker", products.get(2).getName());
         Assertions.assertEquals("Office Chair", products.get(1).getName());
         Assertions.assertEquals("Office Table", products.get(0).getName());
 
+        //no product matching name
+        products = productService.getProductsByFilters(Optional.of("ZZZZ"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.productNameDESC);
+        Assertions.assertTrue(products.isEmpty());
 
     }
 
+    @Test
+    public void testCombinationSorting(){
+        //test sorting by category asc then by price asc
+        List<ProductDTO> products = productService.getProductsByFilters(Optional.of("Off"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                ProductService.Sort.categoryASC, ProductService.Sort.priceASC);
+        Assertions.assertEquals(3, products.size());
+        Assertions.assertEquals("Home Appliances", products.get(0).getCategory());
+        Assertions.assertEquals(new BigDecimal("100.00"), products.get(0).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
+        Assertions.assertEquals(new BigDecimal("220.00"), products.get(1).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(2).getCategory());
+        Assertions.assertEquals(new BigDecimal("567.89"), products.get(2).getPrice());
+
+        //test sorting by category asc then by price desc
+        products = productService.getProductsByFilters(Optional.of("Off"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                ProductService.Sort.categoryASC, ProductService.Sort.priceDESC);
+        Assertions.assertEquals(3, products.size());
+        Assertions.assertEquals("Home Appliances", products.get(0).getCategory());
+        Assertions.assertEquals(new BigDecimal("100.00"), products.get(0).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
+        Assertions.assertEquals(new BigDecimal("567.89"), products.get(1).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(2).getCategory());
+        Assertions.assertEquals(new BigDecimal("220.00"), products.get(2).getPrice());
+
+
+        //test sorting by category desc then by price desc
+        products = productService.getProductsByFilters(Optional.of("Off"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                ProductService.Sort.categoryDESC, ProductService.Sort.priceDESC);
+        Assertions.assertEquals(3, products.size());
+        Assertions.assertEquals("Office Supplies", products.get(0).getCategory());
+        Assertions.assertEquals(new BigDecimal("567.89"), products.get(0).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
+        Assertions.assertEquals(new BigDecimal("220.00"), products.get(1).getPrice());
+        Assertions.assertEquals("Home Appliances", products.get(2).getCategory());
+        Assertions.assertEquals(new BigDecimal("100.00"), products.get(2).getPrice());
+
+    }
 
     @Test
-    public void testGetActiveProductsByFiltersCategory(){
-        List<ProductDTO> products = productService.getActiveProductsByFilters(Optional.of("of"),
-                Optional.of("oFf"), Optional.empty(), Optional.empty(), ProductService.Sort.priceASC);
+    public void testGetProductsByFiltersCategory(){
+        //search on category containing "off"
+        List<ProductDTO> products = productService.getProductsByFilters(Optional.of("of"),
+                Optional.of("oFf"), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.priceASC);
         Assertions.assertEquals(3, products.size());
         Assertions.assertEquals(new BigDecimal("29.99"), products.get(0).getPrice());
         Assertions.assertEquals(new BigDecimal("220.00"), products.get(1).getPrice());
         Assertions.assertEquals(new BigDecimal("567.89"), products.get(2).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(0).getCategory());
+        Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
+        Assertions.assertEquals("Office Supplies", products.get(2).getCategory());
 
-        products = productService.getActiveProductsByFilters(Optional.empty(),
-                Optional.of("OFF"), Optional.empty(), Optional.empty(), ProductService.Sort.priceDESC);
+        //testing non-case sensitive
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.of("OFF"), Optional.empty(), Optional.empty(), Optional.empty(), ProductService.Sort.priceDESC);
         Assertions.assertEquals(3, products.size());
         Assertions.assertEquals(new BigDecimal("29.99"), products.get(2).getPrice());
         Assertions.assertEquals(new BigDecimal("220.00"), products.get(1).getPrice());
         Assertions.assertEquals(new BigDecimal("567.89"), products.get(0).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(0).getCategory());
+        Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
+        Assertions.assertEquals("Office Supplies", products.get(2).getCategory());
 
-        products = productService.getActiveProductsByFilters(Optional.empty(),
-                Optional.of("off"), Optional.of(new BigDecimal((100))), Optional.empty(), ProductService.Sort.priceASC);
+        //testing full category name search and starting price of $100 or more
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.of("Office Supplies"), Optional.of(new BigDecimal((100))), Optional.empty(), Optional.empty(), ProductService.Sort.priceASC);
         Assertions.assertEquals(2, products.size());
         Assertions.assertEquals(new BigDecimal("220.00"), products.get(0).getPrice());
         Assertions.assertEquals(new BigDecimal("567.89"), products.get(1).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(0).getCategory());
+        Assertions.assertEquals("Office Supplies", products.get(1).getCategory());
 
-        products = productService.getActiveProductsByFilters(Optional.empty(),
-                Optional.of("off"), Optional.of(new BigDecimal((100))), Optional.of(new BigDecimal((300))), ProductService.Sort.priceASC);
+        //testing category search with price range
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.of("off"), Optional.of(new BigDecimal((100))), Optional.of(new BigDecimal((300))), Optional.empty(), ProductService.Sort.priceASC);
         Assertions.assertEquals(1, products.size());
         Assertions.assertEquals(new BigDecimal("220.00"), products.get(0).getPrice());
+        Assertions.assertEquals("Office Supplies", products.get(0).getCategory());
 
+        //test no such category
+        products = productService.getProductsByFilters(Optional.empty(),
+                Optional.of("ZZZZ"), Optional.of(new BigDecimal((100))), Optional.of(new BigDecimal((300))), Optional.empty(), ProductService.Sort.priceASC);
+        Assertions.assertTrue(products.isEmpty());
     }
 
 

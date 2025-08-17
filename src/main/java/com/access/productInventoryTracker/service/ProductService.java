@@ -9,7 +9,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.access.productInventoryTracker.repository.ProductRepository;
 import org.springframework.stereotype.Service;
@@ -50,11 +49,12 @@ public class ProductService {
      * @param category - find by using wild card search min character length to start search is 3 characters
      * @param startPrice - price greater or equal to the starting price
      * @param endPrice - price less than or equal to end price
+     * @param sorts - support combination sorting example: sort by category then by price
      * @return products that match the filter condition(s), or empty list if no filter are specified
      */
-    public List<ProductDTO> getActiveProductsByFilters(Optional<String> productName, Optional<String> category,
-                                                       Optional<BigDecimal> startPrice, Optional<BigDecimal> endPrice,
-                                                       Sort sort
+    public List<ProductDTO> getProductsByFilters(Optional<String> productName, Optional<String> category,
+                                                 Optional<BigDecimal> startPrice, Optional<BigDecimal> endPrice,
+                                                 Optional<Boolean> available, Sort... sorts
                                                        ) {
 
         Optional<String> productNameSearch = productName.map(name -> {
@@ -65,15 +65,22 @@ public class ProductService {
             return cat.length() >= 3? String.format(wildCard, cat.toLowerCase()): null;
         });
 
-        if(productNameSearch.isPresent() || categorySearch.isPresent() || startPrice.isPresent() || endPrice.isPresent()) {
+        //check if at lease 1 filter are specified
+        if(productNameSearch.isPresent() || categorySearch.isPresent() || startPrice.isPresent() || endPrice.isPresent() || available.isPresent()) {
             List<ProductDTO> products = productRepository.findByFilters(productNameSearch.orElse(null),
                             categorySearch.orElse(null), startPrice.orElse(null)
-                            , endPrice.orElse(null))
+                            , endPrice.orElse(null), available.orElse(null))
                     .parallelStream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
 
-            products.sort(sort.getComparator());
+            //sorting the products
+            Comparator<ProductDTO> comparator = sorts[0].getComparator();
+            for(int i = 1; i < sorts.length; i++) {
+                comparator = comparator.thenComparing(sorts[i].getComparator());
+            }
+
+            products.sort(comparator);
 
             return products;
         } else {
@@ -97,6 +104,8 @@ public class ProductService {
         categoryDESC(Comparator.comparing(ProductDTO::getCategory).reversed()),
         priceASC(Comparator.comparing(ProductDTO::getPrice)),
         priceDESC(Comparator.comparing(ProductDTO::getPrice).reversed()),
+        availableACS(Comparator.comparing(ProductDTO::isAvailable)),
+        availableDESC(Comparator.comparing(ProductDTO::isAvailable).reversed()),
         ;
         private final Comparator<ProductDTO> comparator;
 
