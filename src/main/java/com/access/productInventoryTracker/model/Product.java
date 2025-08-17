@@ -6,6 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
 
+import java.math.BigDecimal;
+
 @Entity  // This tells Hibernate to make a table out of this class
 public class Product {
     @Id  // This marks the id as the primary key
@@ -16,7 +18,7 @@ public class Product {
     private String name;
 
     @Column(nullable = false)
-    private double price;
+    private BigDecimal price; //change to BigDecimal because of java rounding error with double representation
 
     @Column(nullable = false)
     private String category;
@@ -30,7 +32,7 @@ public class Product {
     }
 
     // Constructor with parameters
-    public Product(Long id, String name, double price, String category, boolean available) {
+    public Product(Long id, String name, BigDecimal price, String category, boolean available) {
         this.id = id;
         this.name = name;
         this.price = price;
@@ -55,11 +57,11 @@ public class Product {
         this.name = name;
     }
 
-    public double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

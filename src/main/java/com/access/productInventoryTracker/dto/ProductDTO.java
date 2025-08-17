@@ -1,14 +1,16 @@
 package com.access.productInventoryTracker.dto;
 
+import java.math.BigDecimal;
+
 public class ProductDTO {
     private Long id;
     private String name;
-    private double price;
+    private BigDecimal price;
     private String category;
     private boolean available;
 
     // Constructor, getters and setters
-    public ProductDTO(Long id, String name, double price, String category, boolean available) {
+    public ProductDTO(Long id, String name, BigDecimal price, String category, boolean available) {
         this.id = id;
         this.name = name;
         this.price = price;
@@ -24,7 +26,7 @@ public class ProductDTO {
         return name;
     }
 
-    public double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
@@ -34,5 +36,16 @@ public class ProductDTO {
 
     public boolean isAvailable() {
         return available;
+    }
+
+    @Override
+    public String toString() {
+        return "ProductDTO{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", price=" + price +
+                ", category='" + category + '\'' +
+                ", available=" + available +
+                '}';
     }
 }
