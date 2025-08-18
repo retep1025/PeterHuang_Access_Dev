@@ -140,3 +140,15 @@ This workflow and the associated tasks are designed to assess your technical ski
 - **Code quality improvement** - Recognizing and enhancing any suboptimal code you encounter
 
 Please complete each part of the task as described while maintaining clean and readable code throughout your implementation.
+
+### Features added
+1. sort on any combination product attributes name, category, price, and available; example: sort by category then by price, etc...
+2. search on any combination product attributes
+3. supports for wild card search on category and product name with a min 3 character. this only works if number of product is about few thousands but is should work for most shops.
+
+### changes to existing implementation
+1. change price to BigDecimal so there are no rounding error cause by using double
+2. using the in memory h2 database for unitests for a better integration test
+3. remove ProductService.convertToDTO category to lower case, so product category display correctly
+4. modified existing ProductRepository Query to use correct syntax findProductsByCategory and change select * to specify all the column names
+5. added maven unit test code coverage 100%
