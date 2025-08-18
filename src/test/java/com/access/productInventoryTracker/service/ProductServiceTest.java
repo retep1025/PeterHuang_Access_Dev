@@ -304,4 +304,9 @@ public class ProductServiceTest {
         Assertions.assertEquals(19, product.getId());
     }
 
+    @Test
+    public void testGetAllProducts(){
+        List<ProductDTO> products = productService.getAllProducts();
+        Assertions.assertEquals(21, products.size());
+    }
 }
