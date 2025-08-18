@@ -151,3 +151,4 @@ Please complete each part of the task as described while maintaining clean and r
 2. using the in memory h2 database for unitests for a better integration test
 3. remove ProductService.convertToDTO category to lower case, so product category display correctly
 4. modified existing ProductRepository Query to use correct syntax findProductsByCategory and change select * to specify all the column names
+5. added maven unit test code coverage 100%
